@@ -17,9 +17,7 @@ class Pokemon:
     # Finds only the gender ratio's through the list of tags
     def clean_gender(self):
         find_starts = [match.start() for match in re.finditer('<td>', str(self.gender))]
-
-        # -1 means <td> wasn't found, and pokemon is Genderless
-        # Genderless is a single tag, so doesn't need to be cleaned
+        # 0 means the pokemon is Genderless
         if not len(find_starts) == 0:
             find_ends = [match.start() for match in re.finditer('</td>', str(self.gender))]
             male_chance = str(self.gender)[find_starts[0]+49:find_ends[1]]
@@ -27,26 +25,48 @@ class Pokemon:
             self.gender = 'Male ' + male_chance + '|Female ' + female_chance
 
     def get_req(self):
-        evolve_info = self.req_to_evolve.find_all('img')
-        self.req_to_evolve = ''
-
-        if not len(evolve_info) == 1:
-            for num, info in enumerate(evolve_info):
-                image_name_start = info['src'].rfind('/') + 1
-                req = info['src'][image_name_start:-4]
-
-                # TODO: Get evolutions names, from the page
-                if req.isdigit():
-                    url = f'https://www.serebii.net/pokemongo/pokemon/{int(req):03d}.shtml'
-                    evolution_data = get_webpage_data(url)
-                    poke_name = evolution_data.find_all(class_='fooinfo')[1]
-
-                    if num == (len(evolve_info) - 1):
-                        self.req_to_evolve += str(poke_name.contents[0])
-                    else:
-                        self.req_to_evolve += str(poke_name.contents[0]) + ' ---'
+        evolve_rows = self.req_to_evolve('tr')
+        poke_dict = {}
+        self.req_to_evolve = []
+        for row in evolve_rows:
+            evolution_branch = ''
+            print('=')
+            new_row = row.tr
+            row_data = row('td')
+            if new_row == None:
+                data_size = len(row_data)
+            else:
+                new_row_data = row.td
+                data_size = len(row_data) - len(new_row_data) - 1
+            for num, data in enumerate(row_data):
+                if num == data_size:
+                    break
+                poke_span = 0
+                if data.has_attr('rowspan'):
+                    poke_span = int(data.get('rowspan'))
                 else:
-                    self.req_to_evolve += req + '--> '
+                    poke_span = 1
+                poke_img = data.img
+                file_start = poke_img['src'].rfind('/') + 1
+                file_name = poke_img['src'][file_start:-4]
+                if file_name.isdigit():
+                    poke_dex_name = webpage.find(value = '/pokemongo/pokemon/' + file_name + '.shtml')
+                    poke_name = poke_dex_name.contents[0][4:]
+                    poke_dict[poke_name] = poke_span
+                elif file_name in poke_dict:
+                    poke_dict[file_name] += 1
+                else:
+                    poke_dict[file_name] = 1
+            for value in poke_dict:
+                print('-')
+                print(value)
+                print(poke_dict)
+                print(poke_dict[value])
+                if not poke_dict[value] == 0:
+                    print(value)
+                    evolution_branch += value + ' '
+                    poke_dict[value] -= 1
+            self.req_to_evolve.append(evolution_branch)
 
 # returns html for a given url
 def get_webpage_data(url):
@@ -54,24 +74,17 @@ def get_webpage_data(url):
     page_data = BeautifulSoup(page_response.text, 'html.parser')
     return page_data
 
-# loops from 1-4
-for i in range(80,81):
-    # ensures i is 3 digits long, with up to 2 leading zeroes
+for i in range(79,80):
     url = f'https://www.serebii.net/pokemongo/pokemon/{i:03d}.shtml'
     webpage = get_webpage_data(url)
-    # Find start of data to be searched
     poke_tables = webpage.find_all(class_='dextab')
-    # Find end of data to be searched
     poke_moves = webpage.find(id='moves')
     poke_moves.decompose()
     contents = []
 
     for table in poke_tables:
-        # Find class with the data itself
         poke_info = table.find_all(class_='fooinfo')
-
         for poke in poke_info:
-            # Handles fooinfo that are spread over 2 lines
             if not len(poke) == 1:
                 if '<br/>' in str(poke.contents[1]):
                     double_line_contents = poke.contents[0] + '|' + poke.contents[2].strip()
@@ -85,5 +98,6 @@ for i in range(80,81):
     pokemon.clean_gender()
     pokemon.get_req()
 
+    # Printing for now, will change general structure of what's created, and create a JSON later
     for poke in pokemon.__dict__:
         print('{}: {}'.format(poke,pokemon.__dict__[poke]))
