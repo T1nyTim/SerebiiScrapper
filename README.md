@@ -8,7 +8,7 @@
 As part of a broader project, for building a PoGo database from multiple sources.
 
 ### Dependencies
-- Python 3.8
+- Python 3.6
 - BeautifulSoup4
 - Requests
 
