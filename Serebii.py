@@ -51,17 +51,20 @@ class Pokemon:
                     break
                 
                 poke_span = 0
-
+                
                 # rowspan documents how many branches a pokemon should be
                 # included in. So where it doesn't exist, set poke_span to 1.
                 if data.has_attr('rowspan'):
                     poke_span = int(data.get('rowspan'))
                 else:
                     poke_span = 1
-                    
-                poke_img = data.img
-                file_start = poke_img['src'].rfind('/') + 1
-                file_name = poke_img['src'][file_start:-4]
+
+                if data.contents == []:
+                    file_name = 'unknown'
+                else:
+                    poke_img = data.img
+                    file_start = poke_img['src'].rfind('/') + 1
+                    file_name = poke_img['src'][file_start:-4]
                 
                 if file_name.isdigit():
                     # Convert Pokemon number to name
@@ -71,7 +74,7 @@ class Pokemon:
                 elif file_name in poke_dict:
                     poke_dict[file_name] += 1
                 else:
-                    poke_dict[file_name] = 1
+                    poke_dict[file_name] = poke_span
             # Form single evolution branch
             for value in poke_dict:
                 if not poke_dict[value] == 0:
@@ -85,7 +88,7 @@ def get_webpage_data(url):
     page_data = BeautifulSoup(page_response.text, 'html.parser')
     return page_data
 
-for i in range(1,3):
+for i in range(59, 60):
     url = f'https://www.serebii.net/pokemongo/pokemon/{i:03d}.shtml'
     webpage = get_webpage_data(url)
     poke_tables = webpage.find_all(class_='dextab')
@@ -99,7 +102,7 @@ for i in range(1,3):
         for poke in poke_info:
             if not len(poke) == 1:
                 if '<br/>' in str(poke.contents[1]):
-                    double_line_contents = poke.contents[0] + '|' + poke.contents[2].strip()
+                    double_line_contents = poke.contents[0] + '|' + str(poke.contents[2]).strip()
                     contents.append(double_line_contents)
                 else:
                     contents.append(poke.contents[0])
@@ -113,3 +116,4 @@ for i in range(1,3):
     # Printing for now, will change general structure of what's created, and create a JSON later
     for poke in pokemon.__dict__:
         print('{}: {}'.format(poke,pokemon.__dict__[poke]))
+    print('-------------------------')
