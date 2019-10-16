@@ -17,6 +17,7 @@ class Pokemon:
     # Finds only the gender ratio's through the list of tags
     def clean_gender(self):
         find_starts = [match.start() for match in re.finditer('<td>', str(self.gender))]
+        
         # 0 means the pokemon is Genderless
         if not len(find_starts) == 0:
             find_ends = [match.start() for match in re.finditer('</td>', str(self.gender))]
@@ -24,32 +25,46 @@ class Pokemon:
             female_chance = str(self.gender)[find_starts[2]+51:find_ends[3]]
             self.gender = 'Male ' + male_chance + '|Female ' + female_chance
 
+    # Transforms the various evolution structures into a list
+    # Example evolution structure 1 [ 1 -> 2 -> 3 ]
+    # Example evolution structure 2 [ 1 -> 2 OR 1 -> 3]
     def get_req(self):
         evolve_rows = self.req_to_evolve('tr')
         poke_dict = {}
         self.req_to_evolve = []
+        
         for row in evolve_rows:
             evolution_branch = ''
-            print('=')
             new_row = row.tr
             row_data = row('td')
+
+            # Due to how branched evolutions are implimented, additional branches
+            # need to be excluded from initial loops.
             if new_row == None:
                 data_size = len(row_data)
             else:
                 new_row_data = row.td
                 data_size = len(row_data) - len(new_row_data) - 1
+                
             for num, data in enumerate(row_data):
                 if num == data_size:
                     break
+                
                 poke_span = 0
+
+                # rowspan documents how many branches a pokemon should be
+                # included in. So where it doesn't exist, set poke_span to 1.
                 if data.has_attr('rowspan'):
                     poke_span = int(data.get('rowspan'))
                 else:
                     poke_span = 1
+                    
                 poke_img = data.img
                 file_start = poke_img['src'].rfind('/') + 1
                 file_name = poke_img['src'][file_start:-4]
+                
                 if file_name.isdigit():
+                    # Convert Pokemon number to name
                     poke_dex_name = webpage.find(value = '/pokemongo/pokemon/' + file_name + '.shtml')
                     poke_name = poke_dex_name.contents[0][4:]
                     poke_dict[poke_name] = poke_span
@@ -57,13 +72,9 @@ class Pokemon:
                     poke_dict[file_name] += 1
                 else:
                     poke_dict[file_name] = 1
+            # Form single evolution branch
             for value in poke_dict:
-                print('-')
-                print(value)
-                print(poke_dict)
-                print(poke_dict[value])
                 if not poke_dict[value] == 0:
-                    print(value)
                     evolution_branch += value + ' '
                     poke_dict[value] -= 1
             self.req_to_evolve.append(evolution_branch)
@@ -74,7 +85,7 @@ def get_webpage_data(url):
     page_data = BeautifulSoup(page_response.text, 'html.parser')
     return page_data
 
-for i in range(79,80):
+for i in range(1,3):
     url = f'https://www.serebii.net/pokemongo/pokemon/{i:03d}.shtml'
     webpage = get_webpage_data(url)
     poke_tables = webpage.find_all(class_='dextab')
@@ -84,6 +95,7 @@ for i in range(79,80):
 
     for table in poke_tables:
         poke_info = table.find_all(class_='fooinfo')
+        
         for poke in poke_info:
             if not len(poke) == 1:
                 if '<br/>' in str(poke.contents[1]):
