@@ -119,14 +119,18 @@ def scrape_pokemon(pokemon: Dict[str, Optional[Any]]):
         poke_info = table.find_all(class_='fooinfo')
 
         for poke in poke_info:
-            if not len(poke) == 1:
+            if len(poke) == 1:
+                contents.append(poke.contents[0])
+            # Accounting for Pokemon with missing fields
+            elif len(poke) == 0:
+                contents.append(None)
+            # Accounting for fields with multi values
+            else:
                 if '<br/>' in str(poke.contents[1]):
                     double_line_contents = poke.contents[0] + '|' + str(poke.contents[2]).strip()
                     contents.append(double_line_contents)
                 else:
                     contents.append(poke.contents[0])
-            else:
-                contents.append(poke.contents[0])
 
     scraped = Pokemon(contents)
     scraped.clean_gender()
@@ -144,7 +148,7 @@ def scrape_pokemon(pokemon: Dict[str, Optional[Any]]):
 
 
 def main():
-    for x in range(29, 41):
+    for x in range(131, 133):
         pokemon = {
             'pokedex': x,
             'name': None,
