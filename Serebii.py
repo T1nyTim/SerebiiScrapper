@@ -24,7 +24,7 @@ class Pokemon:
         self.egg_distance = pokemon_data[9]
         self.buddy_distance = pokemon_data[10]
         self.second_charge_attack = pokemon_data[11]
-        self.req_to_evolve = pokemon_data[13]
+        self.req_to_evolve = pokemon_data[13] if len(pokemon_data) == 14 else None
 
     # Finds only the gender ratio's through the list of tags
     def clean_gender(self):
@@ -135,7 +135,7 @@ def scrape_pokemon(pokemon: Dict[str, Optional[Any]]):
     scraped = Pokemon(contents)
     scraped.clean_gender()
     
-    if len(scraped.req_to_evolve) != 1:
+    if scraped.req_to_evolve and scraped.req_to_evolve != ' ':
         scraped.get_req(webpage)
 
     pokemon['classification'] = scraped.classification
