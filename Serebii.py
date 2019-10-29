@@ -134,7 +134,9 @@ def scrape_pokemon(pokemon: Dict[str, Optional[Any]]):
 
     scraped = Pokemon(contents)
     scraped.clean_gender()
-    scraped.get_req(webpage)
+    
+    if len(scraped.req_to_evolve) != 1:
+        scraped.get_req(webpage)
 
     pokemon['classification'] = scraped.classification
     pokemon['male_ratio'] = scraped.male_ratio
@@ -148,7 +150,7 @@ def scrape_pokemon(pokemon: Dict[str, Optional[Any]]):
 
 
 def main():
-    for x in range(131, 133):
+    for x in range(666, 667):
         pokemon = {
             'pokedex': x,
             'name': None,
@@ -159,7 +161,7 @@ def main():
             'egg_distance': None
         }
         scraped = scrape_pokemon(pokemon=pokemon)
-        # Printing for now, will change general structure of what's created, and create a JSON later
+
         for poke in scraped.keys():
             LOGGER.info('{}: {}'.format(poke.replace('_', ' ').title(), scraped[poke]))
         LOGGER.info('-------------------------')
